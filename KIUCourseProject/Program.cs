@@ -7,7 +7,7 @@ using System.Threading;
 
 class Program
 {
-    private static readonly string RootDirectory = "webroot";
+    private static readonly string RootDirectory = "Webroot";
     private static readonly string[] AllowedExtensions = { ".html", ".css", ".js" };
     private static readonly int Port = 8080;
 
