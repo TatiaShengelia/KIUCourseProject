@@ -6,19 +6,69 @@ body {
     background-color: #f0f0f0;
 }
 
-h1 {
+.page-title {
     color: #2c3e50;
 }
 
+.error-message {
+    color: maroon;
+}
+
+.calculator {
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    width: 260px;
+    margin-bottom: 20px;
+}
+
+.display {
+    width: 260px;
+    box-sizing: border-box;
+    height: 70px;
+    font-size: 1.5rem;
+    text-align: right;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+.buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
 button {
-    padding: 10px 20px;
-    background-color: #3498db;
-    color: white;
+    padding: 15px;
+    font-size: 1.2rem;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
+    background: #e0e0e0;
     cursor: pointer;
+    transition: background 0.2s;
 }
 
 button:hover {
-    background-color: #2980b9;
+    background: #d0d0d0;
+}
+
+.equal {
+    background: #4caf50;
+    color: white;
+}
+
+.equal:hover {
+    background: #45a049;
+}
+
+.clear {
+    background: #f44336;
+    color: white;
+}
+
+.clear:hover {
+    background: #e53935;
 }
