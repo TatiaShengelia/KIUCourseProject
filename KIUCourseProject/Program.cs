@@ -10,6 +10,8 @@ class Program
     private static readonly string RootDirectory = "Webroot";
     private static readonly string[] AllowedExtensions = { ".html", ".css", ".js" };
     private static readonly int Port = 8080;
+    private static readonly string LogFile = "server.log";
+    private static readonly string ErrorPagePath = Path.Combine(RootDirectory, "error.html");
 
     static void Main()
     {
@@ -20,20 +22,21 @@ class Program
         while (true)
         {
             TcpClient client = server.AcceptTcpClient();
-            Thread thread = new Thread(() => HandleClient(client));
-            thread.Start();
+            ThreadPool.QueueUserWorkItem(HandleClient, client); // Uses thread pool
         }
     }
 
-    private static void HandleClient(TcpClient client)
+    private static void HandleClient(object? obj)
     {
+        if (obj is not TcpClient client) return;
+
         using NetworkStream stream = client.GetStream();
         using StreamReader reader = new StreamReader(stream);
         using StreamWriter writer = new StreamWriter(stream) { AutoFlush = true };
 
         try
         {
-            string requestLine = reader.ReadLine();
+            string? requestLine = reader.ReadLine();
             if (string.IsNullOrEmpty(requestLine))
                 return;
 
@@ -44,20 +47,23 @@ class Program
             string method = tokens[0];
             string url = tokens[1];
 
-            Console.WriteLine($"Request: {method} {url}");
+            LogRequest(client, method, url);
 
             if (method.ToUpper() != "GET")
             {
-                SendError(writer, 405, "Method Not Allowed");
+                ServeErrorPage(writer, 405, "Method Not Allowed");
                 return;
             }
+
+            if (url == "/")
+                url = "/index.html";
 
             string filePath = GetSafeFilePath(url);
             string extension = Path.GetExtension(filePath);
 
             if (Array.IndexOf(AllowedExtensions, extension) == -1)
             {
-                SendError(writer, 403, "Forbidden");
+                ServeErrorPage(writer, 403, "Forbidden");
                 return;
             }
 
@@ -73,7 +79,7 @@ class Program
             }
             else
             {
-                SendError(writer, 404, "Not Found");
+                ServeErrorPage(writer, 404, "Not Found");
             }
         }
         catch (Exception ex)
@@ -86,9 +92,29 @@ class Program
         }
     }
 
-    private static void SendError(StreamWriter writer, int code, string status)
+    private static void LogRequest(TcpClient client, string method, string url)
     {
-        string body = $"<html><head><title>{code} {status}</title></head><body><h1>Error {code}: {status}</h1></body></html>";
+        string logEntry = $"{DateTime.Now:u} - {((IPEndPoint)client.Client.RemoteEndPoint!).Address} - {method} {url}";
+        lock (LogFile)
+        {
+            File.AppendAllText(LogFile, logEntry + Environment.NewLine);
+        }
+    }
+
+    private static void ServeErrorPage(StreamWriter writer, int code, string status)
+    {
+        string body;
+        if (File.Exists(ErrorPagePath))
+        {
+            body = File.ReadAllText(ErrorPagePath)
+                .Replace("{CODE}", code.ToString())
+                .Replace("{STATUS}", status);
+        }
+        else
+        {
+            body = $"<html><head><title>{code} {status}</title></head><body><h1>Error {code}: {status}</h1></body></html>";
+        }
+
         writer.WriteLine($"HTTP/1.1 {code} {status}");
         writer.WriteLine("Content-Type: text/html");
         writer.WriteLine($"Content-Length: {Encoding.UTF8.GetByteCount(body)}");
